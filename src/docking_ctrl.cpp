@@ -19,7 +19,7 @@ public:
 
         // ROS subscribers ------------------------------------------------------------------------------------------------
         
-        task_to_exec_ = nh_.subscribe("task_to_execute", 10, &Docking::dockingCallback, this); // task_master dictates which task is is be executed
+        task_to_exec_ = nh_.subscribe("/task_to_execute", 10, &Docking::dockingCallback, this); // task_master dictates which task is is be executed
         
         local_pos_ = nh_.subscribe(local_pose_topic_p, 10, &Docking::localPositionCallback, this);
 
@@ -54,14 +54,17 @@ private:
 
     std::string TAG = "DOCKING_CTRL: ";
 
-    void dockingCallback(const task_master::Task msg) {
+    void dockingCallback(const task_master::Task msg) {    
+        ROS_DEBUG_STREAM(TAG << "dockingCallback");
+        task_master::TaskStatus task_status;
+        task_status.task.current_task = task_master::Task::DOCKING;
+        task_status.status = task_master::TaskStatus::NOT_STARTED;
 
         if(msg.current_task == task_master::Task::DOCKING) {
-            task_master::TaskStatus task_status;
             ROS_INFO_STREAM(TAG << "Hello World");
-            task_status.status = task_master::TaskStatus::NOT_STARTED;
-            task_status_.publish(task_status);
+            task_status.status = task_master::TaskStatus::IN_PROGRESS;
         }
+        task_status_.publish(task_status);
     }
 
     void localPositionCallback(const geometry_msgs::PoseStamped::ConstPtr& msg) {
