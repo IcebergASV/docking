@@ -11,10 +11,9 @@ find_package(catkin REQUIRED COMPONENTS
   roscpp
   std_msgs
   geometry_msgs
-  geographic_msgs
   sensor_msgs
-  mavros_msgs
   task_master
+  prop_mapper
 )
 
 ## System dependencies are found with CMake's conventions
