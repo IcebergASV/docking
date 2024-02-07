@@ -1,0 +1,2 @@
+dock_distance: 15.0 #meters - furthest distance for possible lidar scan points
+dock_discontinuity_range: 2 #meters - distance to consider a section discontinuous

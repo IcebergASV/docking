@@ -124,6 +124,10 @@ include_directories(
   ${catkin_INCLUDE_DIRS}
 )
 
+add_library(liblidar_point
+  lib/lidar_point.cpp
+)
+
 add_executable(docking_ctrl src/docking_ctrl.cpp)
 add_dependencies(docking_ctrl ${docking_ctrl_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 target_link_libraries(docking_ctrl
@@ -156,9 +160,9 @@ target_link_libraries(docking_ctrl
 # add_dependencies(${PROJECT_NAME}_node ${${PROJECT_NAME}_EXPORTED_TARGETS} ${catkin_EXPORTED_TARGETS})
 
 ## Specify libraries to link a library or executable target against
-# target_link_libraries(${PROJECT_NAME}_node
-#   ${catkin_LIBRARIES}
-# )
+target_link_libraries(docking_ctrl
+  liblidar_point
+)
 
 #############
 ## Install ##

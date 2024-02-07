@@ -4,4 +4,8 @@
         <rosparam file="$(find docking)/config/sim_params.yaml" command="load" />
     </node>
 
+    <!--node name="fake_angle_finder" pkg="prop_mapper" type="fake_angle_finder" output="screen">
+        <rosparam file="$(find prop_mapper)/config/sim_params.yaml" command="load" />
+    </node-->
+
 </launch>
