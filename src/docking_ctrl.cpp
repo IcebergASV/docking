@@ -20,6 +20,7 @@ public:
         private_nh_.param<std::string>("local_pose_topic", local_pose_topic_p, "/mavros/local_position/pose"); // topic params allows remaping
         private_nh_.param<double>("dock_distance", dock_distance_p, 7.0);
         private_nh_.param<double>("dock_discontinuity_range", dock_disc_p, 2.0);
+        private_nh_.param<double>("slope_range", slope_range_p, 0.5);
 
 
         // ROS subscribers ------------------------------------------------------------------------------------------------
@@ -62,6 +63,7 @@ private:
     double laser_angle_increment_;
     double dock_distance_p;
     double dock_disc_p;
+    double slope_range_p;
 
     geometry_msgs::PoseStamped current_pos_;
     task_master::TaskGoalPosition goal_pos_;
@@ -133,15 +135,8 @@ private:
             return;
         }
 
-        // store first point in the array, goes ccw
-        // if next point is not a discontinuity, determine if it gets closer or further away
-        // if it starts going away, wait for it to start getting closer
-        // if it is getting closer, wait for it to change to going away
-        // on the change from getting closer to moving away, identify the apex as an outer corner
-        // if ever a discontinuity is detected, (ignore??)
-        // we add the apex to the dock_edges vector, which will later be used to calculate midpoints
-
         std::vector<lidarPoint> dock_edges;
+        std::vector<int> edge_indexes;
         double current_dist = dock_points[0].getDistance();
         bool isGettingCloser;
         if (dock_points[1].getDistance() > current_dist) { // check discontinuity
@@ -156,6 +151,7 @@ private:
             if (isGettingCloser && current_dist<i_dist) { // this represents an outer corner
                 ROS_DEBUG_STREAM(TAG << "outer corner found");
                 dock_edges.push_back(dock_points[i]);
+                edge_indexes.push_back(i);
                 isGettingCloser = false;
             }
             else if (!isGettingCloser && current_dist>i_dist) { // inner corner, switch to getting closer
@@ -170,17 +166,49 @@ private:
         }
         else {
             ROS_INFO_STREAM(TAG << "Detected " << dock_edges.size() << " outer corners");
+            for (int i = 0; i<edge_indexes.size(); i++) {
+                ROS_INFO_STREAM(TAG << "Edge " << i+1 << ", index = " << edge_indexes[i]);
+            }
         }
-
-        // if (dock_edges.size() == 5) {
-            // dock_edges.erase(dock_points.begin()+2);
-        // }
 
         for (int i = 0; i < dock_edges.size(); i++) {
             double ix = dock_edges[i].getDistance() * cos(dock_edges[i].getAngle());
             double iy = dock_edges[i].getDistance() * sin(dock_edges[i].getAngle());
             ROS_INFO_STREAM(TAG << "Point: " << ix << ", " << iy);
         }
+
+        // loop 3 times
+        // in loops 1,2,3 :
+            // remove point 2, then 3, then 4
+            // calculate slope for line 2-1, then 3-2, then 4-3
+            // if all slopes are equal within a range, then don't consider the removed point
+            // then we have best 4 points
+
+        double x1 = dock_edges[0].getDistance() * cos(dock_edges[0].getAngle());
+        double y1 = dock_edges[0].getDistance() * sin(dock_edges[0].getAngle());
+        double x2 = dock_edges[1].getDistance() * cos(dock_edges[1].getAngle());
+        double y2 = dock_edges[1].getDistance() * sin(dock_edges[1].getAngle());
+        double x3 = dock_edges[2].getDistance() * cos(dock_edges[2].getAngle());
+        double y3 = dock_edges[2].getDistance() * sin(dock_edges[2].getAngle());
+        double x4 = dock_edges[3].getDistance() * cos(dock_edges[3].getAngle());
+        double y4 = dock_edges[3].getDistance() * sin(dock_edges[3].getAngle());
+        double x5 = dock_edges[4].getDistance() * cos(dock_edges[4].getAngle());
+        double y5 = dock_edges[4].getDistance() * sin(dock_edges[4].getAngle());
+
+        // 1345, 1245, 1235
+        double s13 = (y3-y1)/(x3-x1);
+        double s34 = (y4-y3)/(x4-x3);
+        double s45 = (y5-y4)/(x5-x4);
+        
+        // check if above 3 slopes are within slope_range of each other
+        // a within range of b, a within range of c, b within range of c
+        // if slopes are same, then have valid set of edges, remove the one not included
+
+        // with 4 edges, find midpoints 12, 23, 34
+        // 12 = left midpoint, 23 = center midpoint, 34 = right midpoint
+        // determine how to proceed with calculating destinations (go to mid? go further from dock?)
+
+        // once all functionality is present, reduce to helper functions
     }
     
 };
